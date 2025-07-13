@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
@@ -64,21 +64,14 @@ const authReducer = (state, action) => {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Set auth token in axios headers
-  useEffect(() => {
-    if (state.token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [state.token]);
+  // Auth token is now handled by the api interceptor
 
   // Load user on app start
   useEffect(() => {
     const loadUser = async () => {
       if (state.token) {
         try {
-          const response = await axios.get('/api/auth/me');
+          const response = await api.get('/api/auth/me');
           dispatch({
             type: 'LOGIN_SUCCESS',
             payload: {
@@ -103,7 +96,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const response = await axios.post('/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         email,
         password
       });
@@ -128,7 +121,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await api.post('/api/auth/register', userData);
 
       dispatch({
         type: 'REGISTER_SUCCESS',
@@ -138,7 +131,14 @@ export const AuthProvider = ({ children }) => {
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
+      let message = error.response?.data?.message || 'Registration failed';
+
+      // Handle validation errors specifically
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
+        message = `Validation failed: ${validationErrors}`;
+      }
+
       dispatch({ type: 'AUTH_ERROR', payload: message });
       toast.error(message);
       return { success: false, message };
@@ -154,7 +154,7 @@ export const AuthProvider = ({ children }) => {
   // Update user profile
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/api/users/profile', profileData);
+      const response = await api.put('/api/users/profile', profileData);
       
       dispatch({
         type: 'UPDATE_USER',

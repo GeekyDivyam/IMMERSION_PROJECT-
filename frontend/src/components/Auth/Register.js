@@ -20,10 +20,20 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+
+    // Clean phone number input - only allow digits
+    if (name === 'phone') {
+      const cleanedPhone = value.replace(/\D/g, ''); // Remove non-digits
+      setFormData({
+        ...formData,
+        [name]: cleanedPhone
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
 
     // Check password match
     if (name === 'confirmPassword' || name === 'password') {
@@ -36,16 +46,25 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
-    if (form.checkValidity() === false || !passwordMatch) {
+
+    // Check if phone number is valid (if provided)
+    const isPhoneValid = !formData.phone || formData.phone.length === 0 || formData.phone.length === 10;
+
+    if (form.checkValidity() === false || !passwordMatch || !isPhoneValid) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
 
     setValidated(true);
-    
+
     const { confirmPassword, ...userData } = formData;
+
+    // Remove empty phone field to avoid validation issues
+    if (!userData.phone || userData.phone.length === 0) {
+      delete userData.phone;
+    }
+
     await register(userData);
   };
 
@@ -59,6 +78,15 @@ const Register = () => {
                 <h2 className="text-primary">📚 E-Library</h2>
                 <h4>Register</h4>
                 <p className="text-muted">Create your account to access the library.</p>
+              </div>
+
+              <div className="alert alert-info mb-3">
+                <small>
+                  <strong>📋 Registration Requirements:</strong><br/>
+                  • Password: At least 6 characters<br/>
+                  • Student ID: Use unique ID (e.g., STU100, STU200)<br/>
+                  • Phone: Exactly 10 digits or leave empty
+                </small>
               </div>
 
               {error && (
@@ -95,11 +123,14 @@ const Register = () => {
                         value={formData.studentId}
                         onChange={handleChange}
                         required
-                        placeholder="Enter your student ID"
+                        placeholder="Enter your student ID (e.g., STU100)"
                       />
                       <Form.Control.Feedback type="invalid">
                         Student ID is required.
                       </Form.Control.Feedback>
+                      <Form.Text className="text-muted">
+                        Use a unique ID like STU100, STU200, etc. (STU001-STU003 are already taken)
+                      </Form.Text>
                     </Form.Group>
                   </Col>
                 </Row>
@@ -164,11 +195,18 @@ const Register = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     pattern="[0-9]{10}"
-                    placeholder="Enter 10-digit phone number"
+                    maxLength={10}
+                    placeholder="Enter 10-digit phone number (e.g., 9876543210)"
+                    isInvalid={formData.phone && formData.phone.length > 0 && formData.phone.length !== 10}
                   />
                   <Form.Control.Feedback type="invalid">
-                    Please enter a valid 10-digit phone number.
+                    Please enter exactly 10 digits (no spaces or special characters).
                   </Form.Control.Feedback>
+                  {formData.phone && formData.phone.length > 0 && formData.phone.length !== 10 && (
+                    <Form.Text className="text-danger">
+                      Current length: {formData.phone.length}/10 digits
+                    </Form.Text>
+                  )}
                 </Form.Group>
 
                 <Form.Group className="mb-3">
