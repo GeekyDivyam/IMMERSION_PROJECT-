@@ -10,17 +10,44 @@ const BookList = () => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [available, setAvailable] = useState('');
+  const [author, setAuthor] = useState('');
+  const [language, setLanguage] = useState('');
+  const [yearFrom, setYearFrom] = useState('');
+  const [yearTo, setYearTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [categories] = useState([
-    'Fiction', 'Non-Fiction', 'Science', 'Technology', 'History', 
-    'Biography', 'Education', 'Literature', 'Business', 'Health', 
-    'Arts', 'Religion', 'Philosophy', 'Other'
-  ]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Filter options from backend
+  const [filterOptions, setFilterOptions] = useState({
+    categories: [],
+    authors: [],
+    languages: [],
+    yearRange: { minYear: 1900, maxYear: new Date().getFullYear() }
+  });
+
+  useEffect(() => {
+    fetchFilterOptions();
+    fetchBooks();
+  }, []);
 
   useEffect(() => {
     fetchBooks();
-  }, [currentPage, search, category, available]);
+  }, [currentPage, search, category, available, author, language, yearFrom, yearTo]);
+
+  const fetchFilterOptions = async () => {
+    try {
+      const response = await api.get('/api/books/filters');
+      setFilterOptions(response.data.data);
+    } catch (error) {
+      console.error('Fetch filter options error:', error);
+      // Use fallback categories if API fails
+      setFilterOptions(prev => ({
+        ...prev,
+        categories: ['Fiction', 'Non-Fiction', 'Science', 'Technology', 'History', 'Biography', 'Education', 'Literature', 'Business', 'Health', 'Arts', 'Religion', 'Philosophy', 'Other']
+      }));
+    }
+  };
 
   const fetchBooks = async () => {
     try {
@@ -33,6 +60,10 @@ const BookList = () => {
       if (search) params.append('search', search);
       if (category) params.append('category', category);
       if (available) params.append('available', available);
+      if (author) params.append('author', author);
+      if (language) params.append('language', language);
+      if (yearFrom) params.append('yearFrom', yearFrom);
+      if (yearTo) params.append('yearTo', yearTo);
 
       const response = await api.get(`/api/books?${params}`);
       setBooks(response.data.data);
@@ -55,6 +86,26 @@ const BookList = () => {
     setCurrentPage(1);
     if (filterType === 'category') setCategory(value);
     if (filterType === 'available') setAvailable(value);
+    if (filterType === 'author') setAuthor(value);
+    if (filterType === 'language') setLanguage(value);
+    if (filterType === 'yearFrom') setYearFrom(value);
+    if (filterType === 'yearTo') setYearTo(value);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setCategory('');
+    setAvailable('');
+    setAuthor('');
+    setLanguage('');
+    setYearFrom('');
+    setYearTo('');
+    setCurrentPage(1);
+  };
+
+  const handleQuickSearch = (searchTerm) => {
+    setSearch(searchTerm);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page) => {
@@ -87,6 +138,49 @@ const BookList = () => {
         <Col>
           <Card>
             <Card.Body>
+              {/* Quick Search Buttons */}
+              <Row className="mb-3">
+                <Col>
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleQuickSearch('fiction')}
+                    >
+                      Fiction
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleQuickSearch('science')}
+                    >
+                      Science
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleQuickSearch('technology')}
+                    >
+                      Technology
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleQuickSearch('history')}
+                    >
+                      History
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={handleClearFilters}
+                    >
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </Col>
+              </Row>
+
               <Form onSubmit={handleSearchSubmit}>
                 <Row className="align-items-end">
                   <Col md={4}>
@@ -94,13 +188,13 @@ const BookList = () => {
                       <Form.Label>Search Books</Form.Label>
                       <Form.Control
                         type="text"
-                        placeholder="Search by title, author, ISBN..."
+                        placeholder="Search by title, author, ISBN, publisher..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                       />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col md={2}>
                     <Form.Group>
                       <Form.Label>Category</Form.Label>
                       <Form.Select
@@ -108,13 +202,13 @@ const BookList = () => {
                         onChange={(e) => handleFilterChange('category', e.target.value)}
                       >
                         <option value="">All Categories</option>
-                        {categories.map(cat => (
+                        {filterOptions.categories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </Form.Select>
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col md={2}>
                     <Form.Group>
                       <Form.Label>Availability</Form.Label>
                       <Form.Select
@@ -131,12 +225,115 @@ const BookList = () => {
                       Search
                     </Button>
                   </Col>
+                  <Col md={2}>
+                    <Button
+                      variant="outline-info"
+                      className="w-100"
+                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    >
+                      {showAdvancedFilters ? 'Hide' : 'More'} Filters
+                    </Button>
+                  </Col>
                 </Row>
+
+                {/* Advanced Filters */}
+                {showAdvancedFilters && (
+                  <Row className="mt-3 pt-3 border-top">
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Author</Form.Label>
+                        <Form.Select
+                          value={author}
+                          onChange={(e) => handleFilterChange('author', e.target.value)}
+                        >
+                          <option value="">All Authors</option>
+                          {filterOptions.authors.map(auth => (
+                            <option key={auth} value={auth}>{auth}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Language</Form.Label>
+                        <Form.Select
+                          value={language}
+                          onChange={(e) => handleFilterChange('language', e.target.value)}
+                        >
+                          <option value="">All Languages</option>
+                          {filterOptions.languages.map(lang => (
+                            <option key={lang} value={lang}>{lang}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Published From</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Year"
+                          min={filterOptions.yearRange.minYear}
+                          max={filterOptions.yearRange.maxYear}
+                          value={yearFrom}
+                          onChange={(e) => handleFilterChange('yearFrom', e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Published To</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Year"
+                          min={filterOptions.yearRange.minYear}
+                          max={filterOptions.yearRange.maxYear}
+                          value={yearTo}
+                          onChange={(e) => handleFilterChange('yearTo', e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                )}
               </Form>
             </Card.Body>
           </Card>
         </Col>
       </Row>
+
+      {/* Search Results Summary */}
+      {!loading && (
+        <Row className="mb-3">
+          <Col>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 className="mb-1">
+                  {books.length > 0 ? `Found ${books.length} books` : 'No books found'}
+                  {search && ` for "${search}"`}
+                </h5>
+                {(search || category || available || author || language || yearFrom || yearTo) && (
+                  <div className="text-muted small">
+                    Active filters:
+                    {search && <Badge bg="primary" className="ms-1">Search: {search}</Badge>}
+                    {category && <Badge bg="secondary" className="ms-1">Category: {category}</Badge>}
+                    {available && <Badge bg="success" className="ms-1">Available Only</Badge>}
+                    {author && <Badge bg="info" className="ms-1">Author: {author}</Badge>}
+                    {language && <Badge bg="warning" className="ms-1">Language: {language}</Badge>}
+                    {(yearFrom || yearTo) && (
+                      <Badge bg="dark" className="ms-1">
+                        Year: {yearFrom || 'Any'} - {yearTo || 'Any'}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="text-muted small">
+                Page {currentPage} of {totalPages}
+              </div>
+            </div>
+          </Col>
+        </Row>
+      )}
 
       {/* Books Grid */}
       {books.length > 0 ? (
@@ -144,36 +341,58 @@ const BookList = () => {
           <Row>
             {books.map((book) => (
               <Col key={book._id} lg={3} md={4} sm={6} className="mb-4">
-                <Card className="book-card h-100">
+                <Card className="book-card h-100 shadow-sm">
                   <Card.Body className="d-flex flex-column">
                     <div className="mb-2">
-                      <Badge bg="secondary" className="mb-2">{book.category}</Badge>
-                      <h6 className="card-title">{book.title}</h6>
-                      <p className="text-muted small mb-2">by {book.author}</p>
-                      <p className="text-muted small mb-2">
-                        Published: {book.publishedYear} | {book.publisher}
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <Badge bg="secondary">{book.category}</Badge>
+                        {book.language && book.language !== 'English' && (
+                          <Badge bg="info" className="ms-1">{book.language}</Badge>
+                        )}
+                      </div>
+                      <h6 className="card-title fw-bold">{book.title}</h6>
+                      <p className="text-muted small mb-1">
+                        <strong>Author:</strong> {book.author}
                       </p>
+                      <p className="text-muted small mb-1">
+                        <strong>Published:</strong> {book.publishedYear} | {book.publisher}
+                      </p>
+                      {book.isbn && (
+                        <p className="text-muted small mb-1">
+                          <strong>ISBN:</strong> {book.isbn}
+                        </p>
+                      )}
+                      {book.description && (
+                        <p className="text-muted small mb-2" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {book.description}
+                        </p>
+                      )}
                     </div>
-                    
+
                     <div className="mt-auto">
                       <div className="d-flex justify-content-between align-items-center mb-2">
                         <small className="text-muted">
-                          {book.availableCopies}/{book.totalCopies} available
+                          <i className="fas fa-book"></i> {book.availableCopies}/{book.totalCopies} available
                         </small>
-                        <Badge 
+                        <Badge
                           bg={book.availableCopies > 0 ? 'success' : 'danger'}
                           className="ms-2"
                         >
                           {book.availableCopies > 0 ? 'Available' : 'Not Available'}
                         </Badge>
                       </div>
-                      
+
                       <div className="d-grid">
-                        <Link 
-                          to={`/books/${book._id}`} 
+                        <Link
+                          to={`/books/${book._id}`}
                           className="btn btn-primary btn-sm"
                         >
-                          View Details
+                          <i className="fas fa-eye me-1"></i>View Details
                         </Link>
                       </div>
                     </div>

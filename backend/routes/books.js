@@ -16,19 +16,51 @@ router.get('/', async (req, res) => {
     
     let query = { isActive: true };
     
-    // Search functionality
+    // Enhanced search functionality
     if (req.query.search) {
-      query.$text = { $search: req.query.search };
+      const searchTerm = req.query.search.trim();
+      if (searchTerm) {
+        // Use regex search for better compatibility
+        query.$or = [
+          { title: { $regex: searchTerm, $options: 'i' } },
+          { author: { $regex: searchTerm, $options: 'i' } },
+          { isbn: { $regex: searchTerm, $options: 'i' } },
+          { publisher: { $regex: searchTerm, $options: 'i' } },
+          { category: { $regex: searchTerm, $options: 'i' } },
+          { description: { $regex: searchTerm, $options: 'i' } }
+        ];
+      }
     }
-    
+
     // Filter by category
-    if (req.query.category) {
+    if (req.query.category && req.query.category !== '') {
       query.category = req.query.category;
     }
-    
+
     // Filter by availability
     if (req.query.available === 'true') {
       query.availableCopies = { $gt: 0 };
+    }
+
+    // Filter by author
+    if (req.query.author && req.query.author !== '') {
+      query.author = { $regex: req.query.author, $options: 'i' };
+    }
+
+    // Filter by publication year range
+    if (req.query.yearFrom || req.query.yearTo) {
+      query.publishedYear = {};
+      if (req.query.yearFrom) {
+        query.publishedYear.$gte = parseInt(req.query.yearFrom);
+      }
+      if (req.query.yearTo) {
+        query.publishedYear.$lte = parseInt(req.query.yearTo);
+      }
+    }
+
+    // Filter by language
+    if (req.query.language && req.query.language !== '') {
+      query.language = req.query.language;
     }
 
     const books = await Book.find(query)
@@ -52,6 +84,45 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Get books error:', error);
     res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : {}
+    });
+  }
+});
+
+// @route   GET /api/books/filters
+// @desc    Get filter options (categories, authors, languages)
+// @access  Public
+router.get('/filters', async (req, res) => {
+  try {
+    const categories = await Book.distinct('category', { isActive: true });
+    const authors = await Book.distinct('author', { isActive: true });
+    const languages = await Book.distinct('language', { isActive: true });
+
+    // Get year range
+    const yearRange = await Book.aggregate([
+      { $match: { isActive: true } },
+      {
+        $group: {
+          _id: null,
+          minYear: { $min: '$publishedYear' },
+          maxYear: { $max: '$publishedYear' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        categories: categories.sort(),
+        authors: authors.sort(),
+        languages: languages.sort(),
+        yearRange: yearRange[0] || { minYear: 1900, maxYear: new Date().getFullYear() }
+      }
+    });
+  } catch (error) {
+    console.error('Get filters error:', error);
+    res.status(500).json({
       message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? error.message : {}
     });
