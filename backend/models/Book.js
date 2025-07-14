@@ -48,6 +48,8 @@ const bookSchema = new mongoose.Schema({
       'Arts',
       'Religion',
       'Philosophy',
+      'Self-Help',
+      'Psychology',
       'Other'
     ]
   },

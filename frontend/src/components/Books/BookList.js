@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Badge, Pagination } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Badge, Pagination, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import api from '../../config/api';
 import { toast } from 'react-toastify';
+import '../../styles/BookAnimations.css';
 
 const BookList = () => {
   const [books, setBooks] = useState([]);
@@ -108,6 +109,25 @@ const BookList = () => {
     setCurrentPage(1);
   };
 
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <Row>
+      {[...Array(12)].map((_, index) => (
+        <Col key={index} md={4} lg={3} className="mb-4">
+          <Card className="loading-book-card loading-skeleton">
+            <Card.Body>
+              <div className="loading-skeleton" style={{ height: '20px', marginBottom: '10px' }}></div>
+              <div className="loading-skeleton" style={{ height: '16px', marginBottom: '8px' }}></div>
+              <div className="loading-skeleton" style={{ height: '14px', marginBottom: '8px' }}></div>
+              <div className="loading-skeleton" style={{ height: '12px', marginBottom: '20px' }}></div>
+              <div className="loading-skeleton" style={{ height: '36px' }}></div>
+            </Card.Body>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  );
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
@@ -136,7 +156,7 @@ const BookList = () => {
       {/* Search and Filters */}
       <Row className="mb-4">
         <Col>
-          <Card>
+          <Card className="search-container shadow-sm">
             <Card.Body>
               {/* Quick Search Buttons */}
               <Row className="mb-3">
@@ -145,37 +165,50 @@ const BookList = () => {
                     <Button
                       variant="outline-primary"
                       size="sm"
+                      className="quick-search-btn"
                       onClick={() => handleQuickSearch('fiction')}
                     >
-                      Fiction
+                      <i className="fas fa-book me-1"></i>Fiction
                     </Button>
                     <Button
                       variant="outline-primary"
                       size="sm"
+                      className="quick-search-btn"
                       onClick={() => handleQuickSearch('science')}
                     >
-                      Science
+                      <i className="fas fa-flask me-1"></i>Science
                     </Button>
                     <Button
                       variant="outline-primary"
                       size="sm"
+                      className="quick-search-btn"
                       onClick={() => handleQuickSearch('technology')}
                     >
-                      Technology
+                      <i className="fas fa-laptop-code me-1"></i>Technology
                     </Button>
                     <Button
                       variant="outline-primary"
                       size="sm"
+                      className="quick-search-btn"
                       onClick={() => handleQuickSearch('history')}
                     >
-                      History
+                      <i className="fas fa-landmark me-1"></i>History
+                    </Button>
+                    <Button
+                      variant="outline-info"
+                      size="sm"
+                      className="quick-search-btn"
+                      onClick={() => handleQuickSearch('biography')}
+                    >
+                      <i className="fas fa-user me-1"></i>Biography
                     </Button>
                     <Button
                       variant="outline-secondary"
                       size="sm"
+                      className="quick-search-btn"
                       onClick={handleClearFilters}
                     >
-                      Clear All Filters
+                      <i className="fas fa-times me-1"></i>Clear All Filters
                     </Button>
                   </div>
                 </Col>
@@ -238,7 +271,7 @@ const BookList = () => {
 
                 {/* Advanced Filters */}
                 {showAdvancedFilters && (
-                  <Row className="mt-3 pt-3 border-top">
+                  <Row className="mt-3 pt-3 border-top advanced-filters">
                     <Col md={3}>
                       <Form.Group>
                         <Form.Label>Author</Form.Label>
@@ -303,7 +336,7 @@ const BookList = () => {
 
       {/* Search Results Summary */}
       {!loading && (
-        <Row className="mb-3">
+        <Row className="mb-3 search-results-summary">
           <Col>
             <div className="d-flex justify-content-between align-items-center">
               <div>
@@ -336,21 +369,23 @@ const BookList = () => {
       )}
 
       {/* Books Grid */}
-      {books.length > 0 ? (
+      {loading ? (
+        <LoadingSkeleton />
+      ) : books.length > 0 ? (
         <>
           <Row>
-            {books.map((book) => (
+            {books.map((book, index) => (
               <Col key={book._id} lg={3} md={4} sm={6} className="mb-4">
-                <Card className="book-card h-100 shadow-sm">
+                <Card className="book-card h-100 shadow-sm" style={{ animationDelay: `${index * 0.1}s` }}>
                   <Card.Body className="d-flex flex-column">
                     <div className="mb-2">
                       <div className="d-flex justify-content-between align-items-start mb-2">
-                        <Badge bg="secondary">{book.category}</Badge>
+                        <Badge bg="secondary" className="category-badge">{book.category}</Badge>
                         {book.language && book.language !== 'English' && (
                           <Badge bg="info" className="ms-1">{book.language}</Badge>
                         )}
                       </div>
-                      <h6 className="card-title fw-bold">{book.title}</h6>
+                      <h6 className="card-title fw-bold book-title">{book.title}</h6>
                       <p className="text-muted small mb-1">
                         <strong>Author:</strong> {book.author}
                       </p>
@@ -381,9 +416,9 @@ const BookList = () => {
                         </small>
                         <Badge
                           bg={book.availableCopies > 0 ? 'success' : 'danger'}
-                          className="ms-2"
+                          className={`ms-2 availability-badge ${book.availableCopies > 0 ? 'available' : 'not-available'}`}
                         >
-                          {book.availableCopies > 0 ? 'Available' : 'Not Available'}
+                          {book.availableCopies > 0 ? '✓ Available' : '✗ Not Available'}
                         </Badge>
                       </div>
 
@@ -457,28 +492,32 @@ const BookList = () => {
       ) : (
         <Row>
           <Col>
-            <Card>
+            <Card className="search-results-summary">
               <Card.Body className="text-center py-5">
+                <div className="mb-3">
+                  <i className="fas fa-search fa-3x text-muted mb-3"></i>
+                </div>
                 <h4>No books found</h4>
                 <p className="text-muted">
-                  {search || category || available 
-                    ? 'Try adjusting your search criteria' 
+                  {search || category || available
+                    ? 'Try adjusting your search criteria or browse all books'
                     : 'No books are currently available in the library'
                   }
                 </p>
-                {(search || category || available) && (
-                  <Button 
-                    variant="outline-primary" 
-                    onClick={() => {
-                      setSearch('');
-                      setCategory('');
-                      setAvailable('');
-                      setCurrentPage(1);
-                    }}
+                <div className="d-flex justify-content-center gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={handleClearFilters}
                   >
-                    Clear Filters
+                    <i className="fas fa-times me-1"></i>Clear Filters
                   </Button>
-                )}
+                  <Button
+                    variant="outline-primary"
+                    onClick={() => handleQuickSearch('')}
+                  >
+                    <i className="fas fa-list me-1"></i>Browse All Books
+                  </Button>
+                </div>
               </Card.Body>
             </Card>
           </Col>
