@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Table, Modal } from 'react-bootstrap';
-import axios from 'axios';
+import api from '../../config/api';
 import { toast } from 'react-toastify';
 
 const MyBooks = () => {
@@ -18,7 +18,7 @@ const MyBooks = () => {
   const fetchMyBooks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/borrow/my-books');
+      const response = await api.get('/api/borrow/my-books');
       setBorrowedBooks(response.data.data);
       setLoading(false);
     } catch (error) {
@@ -31,7 +31,7 @@ const MyBooks = () => {
   const handleReturnBook = async (borrowId) => {
     try {
       setReturning(borrowId);
-      await axios.put(`/api/borrow/${borrowId}/return`);
+      await api.put(`/api/borrow/${borrowId}/return`);
       toast.success('Book returned successfully!');
       setShowReturnModal(false);
       fetchMyBooks();
@@ -46,7 +46,7 @@ const MyBooks = () => {
   const handleRenewBook = async (borrowId) => {
     try {
       setRenewing(borrowId);
-      await axios.put(`/api/borrow/${borrowId}/renew`);
+      await api.put(`/api/borrow/${borrowId}/renew`);
       toast.success('Book renewed successfully!');
       fetchMyBooks();
     } catch (error) {

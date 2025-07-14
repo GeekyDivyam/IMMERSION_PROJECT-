@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../config/api';
 import { toast } from 'react-toastify';
 
 const AddBook = () => {
@@ -57,7 +57,7 @@ const AddBook = () => {
     setError('');
 
     try {
-      await axios.post('/api/books', formData);
+      await api.post('/api/books', formData);
       toast.success('Book added successfully!');
       navigate('/admin/books');
     } catch (error) {

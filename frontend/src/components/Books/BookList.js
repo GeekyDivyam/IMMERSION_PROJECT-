@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Badge, Pagination } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../config/api';
 import { toast } from 'react-toastify';
 
 const BookList = () => {
@@ -34,7 +34,7 @@ const BookList = () => {
       if (category) params.append('category', category);
       if (available) params.append('available', available);
 
-      const response = await axios.get(`/api/books?${params}`);
+      const response = await api.get(`/api/books?${params}`);
       setBooks(response.data.data);
       setTotalPages(response.data.pagination.pages);
       setLoading(false);

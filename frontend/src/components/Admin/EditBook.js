@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../config/api';
 import { toast } from 'react-toastify';
 
 const EditBook = () => {
@@ -40,7 +40,7 @@ const EditBook = () => {
   const fetchBookDetails = async () => {
     try {
       setFetchLoading(true);
-      const response = await axios.get(`/api/books/${id}`);
+      const response = await api.get(`/api/books/${id}`);
       const book = response.data.data;
       
       setFormData({
@@ -93,7 +93,7 @@ const EditBook = () => {
     setError('');
 
     try {
-      await axios.put(`/api/books/${id}`, formData);
+      await api.put(`/api/books/${id}`, formData);
       toast.success('Book updated successfully!');
       navigate('/admin/books');
     } catch (error) {

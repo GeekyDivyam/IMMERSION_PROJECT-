@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Form, Modal } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
+import api from '../../config/api';
 import { toast } from 'react-toastify';
 
 const BookDetails = () => {
@@ -25,7 +25,7 @@ const BookDetails = () => {
   const fetchBookDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/books/${id}`);
+      const response = await api.get(`/api/books/${id}`);
       setBook(response.data.data);
       setLoading(false);
     } catch (error) {
@@ -38,7 +38,7 @@ const BookDetails = () => {
   const handleBorrowBook = async () => {
     try {
       setBorrowing(true);
-      await axios.post('/api/borrow', {
+      await api.post('/api/borrow', {
         bookId: id,
         dueDate: dueDate
       });

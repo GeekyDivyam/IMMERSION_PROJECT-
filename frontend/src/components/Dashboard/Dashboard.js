@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
+import api from '../../config/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -21,16 +21,16 @@ const Dashboard = () => {
       setLoading(true);
       
       // Fetch user's borrowed books
-      const myBooksResponse = await axios.get('/api/borrow/my-books');
+      const myBooksResponse = await api.get('/api/borrow/my-books');
       setMyBooks(myBooksResponse.data.data.filter(book => book.status !== 'returned').slice(0, 5));
 
       // Fetch recent books
-      const booksResponse = await axios.get('/api/books?limit=6');
+      const booksResponse = await api.get('/api/books?limit=6');
       setRecentBooks(booksResponse.data.data);
 
       // Fetch admin stats if user is admin
       if (user.role === 'admin') {
-        const statsResponse = await axios.get('/api/users/stats/dashboard');
+        const statsResponse = await api.get('/api/users/stats/dashboard');
         setStats(statsResponse.data.data);
       }
 
