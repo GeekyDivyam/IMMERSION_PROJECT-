@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Form, Button, Badge, Pagination, Spinner } f
 import { Link } from 'react-router-dom';
 import api from '../../config/api';
 import { toast } from 'react-toastify';
+import StarRating from '../Reviews/StarRating';
 import '../../styles/BookAnimations.css';
 
 const BookList = () => {
@@ -389,6 +390,14 @@ const BookList = () => {
                       <p className="text-muted small mb-1">
                         <strong>Author:</strong> {book.author}
                       </p>
+                      {book.totalReviews > 0 && (
+                        <div className="mb-2">
+                          <StarRating rating={book.averageRating} readonly size="sm" />
+                          <small className="text-muted ms-1">
+                            ({book.totalReviews} review{book.totalReviews !== 1 ? 's' : ''})
+                          </small>
+                        </div>
+                      )}
                       <p className="text-muted small mb-1">
                         <strong>Published:</strong> {book.publishedYear} | {book.publisher}
                       </p>

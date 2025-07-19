@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 
 // Components
@@ -17,9 +18,13 @@ import ManageBooks from './components/Admin/ManageBooks';
 import ManageUsers from './components/Admin/ManageUsers';
 import AddBook from './components/Admin/AddBook';
 import EditBook from './components/Admin/EditBook';
+import OverdueDashboard from './components/Admin/OverdueDashboard';
 import Profile from './components/User/Profile';
 import ProtectedRoute from './components/Layout/ProtectedRoute';
 import AdminRoute from './components/Layout/AdminRoute';
+
+// Styles
+import './styles/DarkMode.css';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -125,13 +130,21 @@ function AppContent() {
                 </AdminRoute>
               } 
             />
-            <Route 
-              path="/admin/users" 
+            <Route
+              path="/admin/users"
               element={
                 <AdminRoute>
                   <ManageUsers />
                 </AdminRoute>
-              } 
+              }
+            />
+            <Route
+              path="/admin/overdue"
+              element={
+                <AdminRoute>
+                  <OverdueDashboard />
+                </AdminRoute>
+              }
             />
 
             {/* Default Route */}
@@ -173,9 +186,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

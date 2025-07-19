@@ -2,6 +2,7 @@ import React from 'react';
 import { Navbar as BootstrapNavbar, Nav, NavDropdown, Container } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
 import { useAuth } from '../../context/AuthContext';
+import ThemeToggle from '../Common/ThemeToggle';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -42,6 +43,10 @@ const Navbar = () => {
                     <LinkContainer to="/admin/users">
                       <NavDropdown.Item>Manage Users</NavDropdown.Item>
                     </LinkContainer>
+                    <NavDropdown.Divider />
+                    <LinkContainer to="/admin/overdue">
+                      <NavDropdown.Item>⚠️ Overdue Books</NavDropdown.Item>
+                    </LinkContainer>
                   </NavDropdown>
                 )}
               </Nav>
@@ -61,6 +66,9 @@ const Navbar = () => {
                   </NavDropdown.Item>
                 </NavDropdown>
               </Nav>
+              <div className="d-flex align-items-center ms-2">
+                <ThemeToggle />
+              </div>
             </>
           ) : (
             <Nav className="ms-auto">
@@ -70,6 +78,9 @@ const Navbar = () => {
               <LinkContainer to="/register">
                 <Nav.Link>Register</Nav.Link>
               </LinkContainer>
+              <div className="d-flex align-items-center ms-2">
+                <ThemeToggle />
+              </div>
             </Nav>
           )}
         </BootstrapNavbar.Collapse>

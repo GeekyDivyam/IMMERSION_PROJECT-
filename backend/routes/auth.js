@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, protect } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -54,6 +55,11 @@ router.post('/register', [
 
     // Generate token
     const token = generateToken(user._id);
+
+    // Send welcome email (don't wait for it to complete)
+    emailService.sendWelcomeEmail(user).catch(err => {
+      console.error('Failed to send welcome email:', err);
+    });
 
     res.status(201).json({
       success: true,

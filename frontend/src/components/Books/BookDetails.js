@@ -4,6 +4,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../config/api';
 import { toast } from 'react-toastify';
+import StarRating from '../Reviews/StarRating';
+import ReviewForm from '../Reviews/ReviewForm';
+import ReviewsList from '../Reviews/ReviewsList';
 
 const BookDetails = () => {
   const { id } = useParams();
@@ -13,6 +16,7 @@ const BookDetails = () => {
   const [borrowing, setBorrowing] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [dueDate, setDueDate] = useState('');
+  const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
   useEffect(() => {
     fetchBookDetails();
@@ -52,6 +56,11 @@ const BookDetails = () => {
     } finally {
       setBorrowing(false);
     }
+  };
+
+  const handleReviewAdded = () => {
+    setReviewsRefreshTrigger(prev => prev + 1);
+    fetchBookDetails(); // Refresh book details to update rating
   };
 
   if (loading) {
@@ -99,6 +108,14 @@ const BookDetails = () => {
                   <Badge bg="secondary" className="mb-2">{book.category}</Badge>
                   <h1 className="h3">{book.title}</h1>
                   <h2 className="h5 text-muted">by {book.author}</h2>
+                  {book.totalReviews > 0 && (
+                    <div className="d-flex align-items-center mt-2">
+                      <StarRating rating={book.averageRating} readonly showValue />
+                      <span className="text-muted ms-2">
+                        ({book.totalReviews} review{book.totalReviews !== 1 ? 's' : ''})
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-end">
                   <Badge 
@@ -244,6 +261,26 @@ const BookDetails = () => {
               </div>
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Reviews Section */}
+      <Row className="mt-5">
+        <Col>
+          <h3 className="mb-4">
+            <i className="fas fa-star me-2"></i>
+            Reviews & Ratings
+          </h3>
+
+          <ReviewForm
+            bookId={id}
+            onReviewAdded={handleReviewAdded}
+          />
+
+          <ReviewsList
+            bookId={id}
+            refreshTrigger={reviewsRefreshTrigger}
+          />
         </Col>
       </Row>
 

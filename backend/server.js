@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const notificationScheduler = require('./services/notificationScheduler');
 require('dotenv').config();
 
 const app = express();
@@ -47,6 +48,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/books', require('./routes/books'));
 app.use('/api/borrow', require('./routes/borrow'));
+app.use('/api/notifications', require('./routes/notifications'));
+// app.use('/api/reviews', require('./routes/reviews')); // Temporarily disabled
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -71,4 +74,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Initialize notification schedulers
+  notificationScheduler.init();
 });

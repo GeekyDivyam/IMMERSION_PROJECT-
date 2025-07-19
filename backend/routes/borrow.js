@@ -4,6 +4,7 @@ const Book = require('../models/Book');
 const User = require('../models/User');
 const BorrowRecord = require('../models/BorrowRecord');
 const { protect, admin } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -271,6 +272,170 @@ router.put('/:id/renew', protect, async (req, res) => {
   } catch (error) {
     console.error('Renew book error:', error);
     res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : {}
+    });
+  }
+});
+
+// @route   POST /api/borrow/return/:id
+// @desc    Return a borrowed book
+// @access  Private (Admin/Librarian)
+router.post('/return/:id', protect, async (req, res) => {
+  try {
+    const { returnCondition = 'good', returnNotes = '', fineAmount = 0 } = req.body;
+
+    // Find the borrow record
+    const borrowRecord = await BorrowRecord.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('book', 'title author');
+
+    if (!borrowRecord) {
+      return res.status(404).json({ message: 'Borrow record not found' });
+    }
+
+    if (borrowRecord.status === 'returned') {
+      return res.status(400).json({ message: 'Book already returned' });
+    }
+
+    // Update borrow record
+    borrowRecord.status = 'returned';
+    borrowRecord.returnDate = new Date();
+    borrowRecord.returnCondition = returnCondition;
+    borrowRecord.returnNotes = returnNotes;
+    borrowRecord.returnedBy = req.user.id;
+
+    // Calculate fine if overdue
+    if (new Date() > borrowRecord.dueDate) {
+      const overdueDays = Math.ceil((new Date() - borrowRecord.dueDate) / (1000 * 60 * 60 * 24));
+      const finePerDay = 5; // $5 per day
+      borrowRecord.fine.amount = Math.max(fineAmount, overdueDays * finePerDay);
+    } else if (fineAmount > 0) {
+      borrowRecord.fine.amount = fineAmount; // Manual fine (damage, etc.)
+    }
+
+    await borrowRecord.save();
+
+    // Update book availability
+    const book = await Book.findById(borrowRecord.book._id);
+    book.availableCopies += 1;
+    await book.save();
+
+    // Send return confirmation email (don't wait for it to complete)
+    emailService.sendBookReturnedConfirmation(
+      borrowRecord.user,
+      borrowRecord.book,
+      borrowRecord.fine.amount
+    ).catch(err => {
+      console.error('Failed to send return confirmation email:', err);
+    });
+
+    res.json({
+      success: true,
+      data: borrowRecord,
+      message: 'Book returned successfully'
+    });
+  } catch (error) {
+    console.error('Return book error:', error);
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : {}
+    });
+  }
+});
+
+// @route   POST /api/borrow/renew/:id
+// @desc    Renew a borrowed book
+// @access  Private
+router.post('/renew/:id', protect, async (req, res) => {
+  try {
+    const borrowRecord = await BorrowRecord.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('book', 'title author');
+
+    if (!borrowRecord) {
+      return res.status(404).json({ message: 'Borrow record not found' });
+    }
+
+    // Check if user owns this borrow record or is admin
+    if (borrowRecord.user._id.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to renew this book' });
+    }
+
+    if (borrowRecord.status !== 'borrowed') {
+      return res.status(400).json({ message: 'Can only renew active borrowed books' });
+    }
+
+    if (borrowRecord.renewalCount >= 2) {
+      return res.status(400).json({ message: 'Maximum renewal limit reached' });
+    }
+
+    // Check if book has pending reservations
+    // (This would require a reservation system - placeholder for now)
+
+    // Extend due date by 14 days
+    const newDueDate = new Date(borrowRecord.dueDate);
+    newDueDate.setDate(newDueDate.getDate() + 14);
+
+    borrowRecord.dueDate = newDueDate;
+    borrowRecord.renewalCount += 1;
+    borrowRecord.status = 'borrowed'; // Reset from overdue if applicable
+
+    await borrowRecord.save();
+
+    res.json({
+      success: true,
+      data: borrowRecord,
+      message: `Book renewed successfully. New due date: ${newDueDate.toDateString()}`
+    });
+  } catch (error) {
+    console.error('Renew book error:', error);
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : {}
+    });
+  }
+});
+
+// @route   GET /api/borrow/overdue
+// @desc    Get all overdue books
+// @access  Private (Admin)
+router.get('/overdue', protect, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const overdueBooks = await BorrowRecord.find({
+      status: { $in: ['borrowed', 'overdue'] },
+      dueDate: { $lt: new Date() }
+    })
+    .populate('user', 'name email phone')
+    .populate('book', 'title author isbn')
+    .sort({ dueDate: 1 });
+
+    // Calculate fines for each overdue book
+    const overdueWithFines = overdueBooks.map(record => {
+      const overdueDays = Math.ceil((new Date() - record.dueDate) / (1000 * 60 * 60 * 24));
+      const finePerDay = 5;
+      const calculatedFine = overdueDays * finePerDay;
+
+      return {
+        ...record.toObject(),
+        overdueDays,
+        calculatedFine
+      };
+    });
+
+    res.json({
+      success: true,
+      data: overdueWithFines,
+      count: overdueWithFines.length
+    });
+  } catch (error) {
+    console.error('Get overdue books error:', error);
+    res.status(500).json({
       message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? error.message : {}
     });

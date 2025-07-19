@@ -46,7 +46,7 @@ const MyBooks = () => {
   const handleRenewBook = async (borrowId) => {
     try {
       setRenewing(borrowId);
-      await api.put(`/api/borrow/${borrowId}/renew`);
+      await api.post(`/api/borrow/renew/${borrowId}`);
       toast.success('Book renewed successfully!');
       fetchMyBooks();
     } catch (error) {

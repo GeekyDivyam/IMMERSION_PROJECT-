@@ -32,8 +32,13 @@ const borrowRecordSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['borrowed', 'returned', 'overdue'],
+    enum: ['borrowed', 'returned', 'overdue', 'lost'],
     default: 'borrowed'
+  },
+  returnCondition: {
+    type: String,
+    enum: ['excellent', 'good', 'fair', 'poor', 'damaged'],
+    default: null
   },
   fine: {
     amount: {
@@ -58,6 +63,10 @@ const borrowRecordSchema = new mongoose.Schema({
   notes: {
     type: String,
     maxlength: [500, 'Notes cannot be more than 500 characters']
+  },
+  returnNotes: {
+    type: String,
+    maxlength: [500, 'Return notes cannot be more than 500 characters']
   },
   issuedBy: {
     type: mongoose.Schema.Types.ObjectId,
